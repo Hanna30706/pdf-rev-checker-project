@@ -1,0 +1,96 @@
+# [I-AGG-0301-030-A01]부표1. 현장점검 수행 및 평가기준_개정 전.pdf - DocTR 추출 보고서
+
+## 📋 문서 정보
+
+| 항목 | 값 |
+|------|-----|
+| 파일명 | [I-AGG-0301-030-A01]부표1. 현장점검 수행 및 평가기준_개정 전.pdf |
+| 추출 타입 | DocTR (Document Text Recognition) |
+| 총 페이지 | 2 |
+| 추출 날짜 | 2026-07-21 |
+
+---
+
+## 📊 추출 통계
+
+| 항목 | 값 |
+|------|-----|
+| 총 페이지 | 2 |
+
+---
+
+## 📄 페이지 1
+
+### 블록 1
+
+SCe O1OHA
+ER1. 8 27 0 a
+A a DE 177E
+HEHO
+-AGG-0301-030-A01
+7HHHO
+7H797
+
+---
+
+## 📄 페이지 2
+
+### 블록 1
+
+I 22t L18
+#877 A8 D 1771Z
+1.888H 7E LE 2289
+URR8
+HH771 (Et AIE)
+22189
+#NTH
+AS(IENE) BUNNE 60-70%. AU
+RNH HIA Nt
+IENE gEH, 712F01 m2t *7+ EE bt
+NCR/CAR way 2 221
+H8 7HY *71 EN/ZAAE 1I 112)
+HIH NH g8
+1Y87
+N7 EI09 Fe #U
+(X N12 N no 2H)
+N89 ay AI
+88/87 U ECHENI EN AI
+HIH NU
+EUUH
+97N A7 AI
+28N19 XJAI
+NCR/CAR wa L 221
+38A48(83/03) 98717 E7
+21477
+HEH N7 (18284/35284 E1)
+HIA NY
+W7H NE Et NE
+NCR/CAR EU L 221
+BAt Ayol 9l8t 9147129 EE
+2.81877 2 TE
+RE
+XA7
+XX131(E) SIA
+94421
+au de
+ZAI 24
+A N OJENAS
+A18 2 OYEXI R7H
+HHEE # 27
+H42748
+HUAH ZIHIH
+UIEE # 27
+3.8877 17771Z
+7 DE
+U7H Ee
+aE EV387 E7H4E OF2H9 ze HYOZ NASICH
+U7H 84
+HE
+EIYE : 350%
+#348:1503
+UH AI 1) HUH HHE 2878 2872, 24E8/33, 7HAO 47H 8202 7E810 H48202 17H NA
+F9AS 2) NYN7 AI HRE XX1274801 CHet H88 Egoto UH
+3) HHUH AI FA 8E9 HINNE CHYOR AB/87/83 22191 Ol6H L AHIEE 871010 YHEHOI E8
+
+---
+

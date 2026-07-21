@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 추출 검증 보고서</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .page-section {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .page-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .page-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .element-list {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .element-header {
+            background: #f0f0f0;
+            padding: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #e0e0e0;
+            display: grid;
+            grid-template-columns: 80px 120px 1fr;
+            gap: 15px;
+        }
+
+        .element-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: grid;
+            grid-template-columns: 80px 120px 1fr;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .element-item:last-child {
+            border-bottom: none;
+        }
+
+        .element-order {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .element-type {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: white;
+        }
+
+        .type-heading {
+            background: #667eea;
+        }
+
+        .type-paragraph {
+            background: #42a5f5;
+        }
+
+        .type-list {
+            background: #66bb6a;
+        }
+
+        .type-table {
+            background: #ffa726;
+        }
+
+        .element-content {
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .table-detail {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .table-info {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #ffa726;
+        }
+
+        .table-info-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .table-row {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+            font-size: 0.95em;
+        }
+
+        .table-stat {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-status-ok {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .table-status-ocr {
+            color: #ff9800;
+            font-weight: bold;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .summary-card.highlight {
+            border: 2px solid #667eea;
+            background: #f9f9ff;
+        }
+
+        .summary-card-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .summary-card-label {
+            font-size: 1em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .verdict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 30px;
+            font-size: 1.3em;
+        }
+
+        .verdict-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .footer {
+            background: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .element-header,
+            .element-item {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PDF 추출 검증 보고서</h1>
+            <p>구조화된 데이터 추출 결과 분석</p>
+        </div>
+
+        <div class="content">
+
+            <div class="section">
+                <h2 class="section-title">페이지 1 검증</h2>
+
+                <div class="page-section">
+                    <div class="page-title">
+                        <span class="page-badge">PAGE 1</span>
+                        총 4개 요소
+                    </div>
+
+                    <div class="stat-row">
+                        <div class="stat-box">
+                            <div class="stat-value">1</div>
+                            <div class="stat-label">제목</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">1</div>
+                            <div class="stat-label">본문</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">목록</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">2</div>
+                            <div class="stat-label">표</div>
+                        </div>
+                    </div>
+
+                    <div class="element-list">
+                        <div class="element-header">
+                            <div>순서</div>
+                            <div>타입</div>
+                            <div>내용 미리보기</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">1</div>
+                            <div><span class="element-type type-heading">HEADING</span></div>
+                            <div class="element-content">부표1. 현장점검 수행 및 평가기준 (Y=312.9pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">2</div>
+                            <div><span class="element-type type-table">TABLE</span></div>
+                            <div class="element-content">3 rows × 2 cols (Y=510.3pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">3</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">표준번호 I-AGG-0301-030-A01 개정번호 개정일자 (Y=517.9pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">4</div>
+                            <div><span class="element-type type-table">TABLE</span></div>
+                            <div class="element-content">4 rows × 3 cols (Y=717.1pt)</div>
+                        </div>
+
+                    </div>
+
+                    <div class="table-info">
+                        <div class="table-info-title">표 분석</div>
+
+                        <div class="table-row">
+                            <div class="table-stat">
+                                <strong>Table 1:</strong> 3×2 = 6개 셀
+                            </div>
+                            <div class="table-stat">
+                                <strong>텍스트:</strong> 4/6 (67%)
+                            </div>
+                            <div class="table-stat">
+                                <span class="table-status-ok">✓ TEXT-BASED</span>
+                            </div>
+                        </div>
+
+                        <div class="table-row">
+                            <div class="table-stat">
+                                <strong>Table 2:</strong> 4×3 = 12개 셀
+                            </div>
+                            <div class="table-stat">
+                                <strong>텍스트:</strong> 0/12 (0%)
+                            </div>
+                            <div class="table-stat">
+                                <span class="table-status-ocr">⚠ IMAGE-BASED (OCR 필요)</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">페이지 2 검증</h2>
+
+                <div class="page-section">
+                    <div class="page-title">
+                        <span class="page-badge">PAGE 2</span>
+                        총 21개 요소
+                    </div>
+
+                    <div class="stat-row">
+                        <div class="stat-box">
+                            <div class="stat-value">4</div>
+                            <div class="stat-label">제목</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">13</div>
+                            <div class="stat-label">본문</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">1</div>
+                            <div class="stat-label">목록</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">표</div>
+                        </div>
+                    </div>
+
+                    <div class="element-list">
+                        <div class="element-header">
+                            <div>순서</div>
+                            <div>타입</div>
+                            <div>내용 미리보기</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">1</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">목차 내용 (Y=38.2pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">2</div>
+                            <div><span class="element-type type-heading">HEADING</span></div>
+                            <div class="element-content">현장점검 수행 및 평가기준 (Y=53.9pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">3</div>
+                            <div><span class="element-type type-heading">HEADING</span></div>
+                            <div class="element-content">1.현장점검 구분 및 관리방안 (Y=117.0pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">4</div>
+                            <div><span class="element-type type-table">TABLE</span></div>
+                            <div class="element-content">5 rows × 3 cols (Y=138.1pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">5</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">점검유형 점검주기 (또는 시점) 관리방안 (Y=141.6pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">6</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">현장점검 현장(프로젝트)별 공정진행률 60~70% 시점 프로젝트 형태, 기간에 따라 추가 ... (Y=156.0pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">7</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">지원점검 현장 개설 초기 (품질/환경시스템 수립 지원) 신규 품질인원 투입 현장 현장의 요... (Y=184.3pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">8</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">특별점검 품질/환경 상 중대문제 발생 시 발주처 요구 시 경영진의 지시 보고서 작성 NCR... (Y=224.3pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">9</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">외부점검 경영시스템(품질/환경) 인증기관 점검 관공서 점검 (고용노동부/국토교통부 등) 발... (Y=265.4pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">10</div>
+                            <div><span class="element-type type-heading">HEADING</span></div>
+                            <div class="element-content">2.현장점검 결과 구분 (Y=343.7pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">11</div>
+                            <div><span class="element-type type-table">TABLE</span></div>
+                            <div class="element-content">5 rows × 4 cols (Y=366.0pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">12</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">구분 조치요구 조치결과(계획) 회신 (Y=368.9pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">13</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">우수사례 공 유 즉시 공유 (Y=381.7pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">14</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">시정 및 예방조치사항 시정 및 예방조치 요구서 점검종료 후 2주 (Y=394.5pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">15</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">개선요구사항 현장점검 결과보고서 점검종료 후 2주 (Y=407.9pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">16</div>
+                            <div><span class="element-type type-heading">HEADING</span></div>
+                            <div class="element-content">3.현장점검 평가기준 (Y=447.7pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">17</div>
+                            <div><span class="element-type type-table">TABLE</span></div>
+                            <div class="element-content">4 rows × 2 cols (Y=470.0pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">18</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">구 분 평가 방법 (Y=476.7pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">19</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">평가 점수 배분 현장 품질/환경점검 평가점수는 아래와 같은 배점으로 실시한다 (Y=501.2pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">20</div>
+                            <div><span class="element-type type-paragraph">PARAGRAPH</span></div>
+                            <div class="element-content">품질부문 : 350점 환경부문 : 150점 (Y=529.5pt)</div>
+                        </div>
+
+                        <div class="element-item">
+                            <div class="element-order">21</div>
+                            <div><span class="element-type type-list">LIST</span></div>
+                            <div class="element-content">평가 시
+주의사항
+1) 현장점검 평가는 운영계획, 운영관리, 모니터링/점검, 개선의 4개 ... (Y=558.9pt)</div>
+                        </div>
+
+                    </div>
+
+                    <div class="table-info">
+                        <div class="table-info-title">표 분석</div>
+
+                        <div class="table-row">
+                            <div class="table-stat">
+                                <strong>Table 1:</strong> 5×3 = 15개 셀
+                            </div>
+                            <div class="table-stat">
+                                <strong>텍스트:</strong> 11/15 (73%)
+                            </div>
+                            <div class="table-stat">
+                                <span class="table-status-ok">✓ TEXT-BASED</span>
+                            </div>
+                        </div>
+
+                        <div class="table-row">
+                            <div class="table-stat">
+                                <strong>Table 2:</strong> 5×4 = 20개 셀
+                            </div>
+                            <div class="table-stat">
+                                <strong>텍스트:</strong> 12/20 (60%)
+                            </div>
+                            <div class="table-stat">
+                                <span class="table-status-ok">✓ TEXT-BASED</span>
+                            </div>
+                        </div>
+
+                        <div class="table-row">
+                            <div class="table-stat">
+                                <strong>Table 3:</strong> 4×2 = 8개 셀
+                            </div>
+                            <div class="table-stat">
+                                <strong>텍스트:</strong> 5/8 (62%)
+                            </div>
+                            <div class="table-stat">
+                                <span class="table-status-ok">✓ TEXT-BASED</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">전체 요약</h2>
+
+                <div class="summary-grid">
+                    <div class="summary-card highlight">
+                        <div class="summary-card-value">25</div>
+                        <div class="summary-card-label">총 요소</div>
+                    </div>
+                    <div class="summary-card highlight">
+                        <div class="summary-card-value">5</div>
+                        <div class="summary-card-label">표</div>
+                    </div>
+                    <div class="summary-card highlight">
+                        <div class="summary-card-value">61</div>
+                        <div class="summary-card-label">표 셀</div>
+                    </div>
+                    <div class="summary-card highlight">
+                        <div class="summary-card-value">52.5%</div>
+                        <div class="summary-card-label">텍스트 추출률</div>
+                    </div>
+                </div>
+
+                <div class="summary-grid" style="margin-top: 30px;">
+                    <div class="summary-card">
+                        <div class="summary-card-value" style="color: #4caf50;">4</div>
+                        <div class="summary-card-label">TEXT-BASED 표<br><span style="font-size: 0.9em;">(80%)</span></div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-value" style="color: #ff9800;">1</div>
+                        <div class="summary-card-label">IMAGE-BASED 표<br><span style="font-size: 0.9em;">(OCR 필요, 20%)</span></div>
+                    </div>
+                </div>
+
+                <div class="verdict">
+                    <div class="verdict-title">✓ 최종 판정: 검증 완료</div>
+                    <div>
+                        제목, 본문, 표 구조가 올바르게 추출되었습니다.<br>
+                        비교 알고리즘 입력 데이터로 사용 가능합니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>검증 일시: 2026-07-21 | 파일: [I-AGG-0301-030-A01]부표1. 현장점검 수행 및 평가기준_개정 전.pdf | 페이지: 2 | 파일크기: 201.5KB</p>
+        </div>
+    </div>
+</body>
+</html>

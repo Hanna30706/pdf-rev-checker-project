@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF OCR 추출 도구</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0eaff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8deff;
+        }
+
+        .upload-area p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .upload-area small {
+            color: #999;
+            display: block;
+            margin-top: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            background: #f0eaff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info p {
+            color: #333;
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+
+        .file-info strong {
+            color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-copy {
+            background: #42a5f5;
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-copy:hover {
+            background: #2196f3;
+        }
+
+        .btn-download {
+            background: #66bb6a;
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-download:hover {
+            background: #4caf50;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #f9f9ff;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .output-panel {
+            display: none;
+        }
+
+        .output-panel.show {
+            display: block;
+        }
+
+        .markdown-output {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 500px;
+            overflow-y: auto;
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+            border-left: 4px solid #c62828;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+            border-left: 4px solid #4caf50;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        .button-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-ok {
+            background: #4caf50;
+        }
+
+        .status-processing {
+            background: #ff9800;
+        }
+
+        .status-error {
+            background: #f44336;
+        }
+
+        .footer {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            color: #666;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>PDF OCR 추출 도구</h1>
+            <p>PDF를 업로드하면 OCR로 텍스트를 추출하고 마크다운으로 생성합니다</p>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="content">
+            <!-- 업로드 패널 -->
+            <div class="panel">
+                <h2>PDF 업로드</h2>
+
+                <div class="upload-area" id="uploadArea">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📄</div>
+                    <p>PDF 파일을 드래그하거나 클릭하세요</p>
+                    <small>최대 50MB까지 지원합니다</small>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf">
+                </div>
+
+                <div class="file-info" id="fileInfo">
+                    <p><strong>파일명:</strong> <span id="fileName">-</span></p>
+                    <p><strong>파일 크기:</strong> <span id="fileSize">-</span></p>
+                    <p><strong>상태:</strong> <span id="fileStatus">대기 중</span></p>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" id="uploadBtn" disabled>추출 시작</button>
+                    <button class="btn-secondary" id="clearBtn">초기화</button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p id="loadingText">OCR 추출 중... (시간이 걸릴 수 있습니다)</p>
+                </div>
+
+                <div class="error" id="error">
+                    <strong>오류:</strong>
+                    <p id="errorText"></p>
+                </div>
+
+                <div class="success" id="success">
+                    <strong>성공!</strong>
+                    <p id="successText"></p>
+                </div>
+            </div>
+
+            <!-- 결과 패널 -->
+            <div class="panel">
+                <h2>추출 결과</h2>
+
+                <div id="resultsPanel" class="output-panel">
+                    <div class="stats-grid" id="statsGrid"></div>
+
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchTab('markdown')">마크다운</button>
+                        <button class="tab-btn" onclick="switchTab('json')">JSON</button>
+                    </div>
+
+                    <div id="markdown-tab" class="tab-content active">
+                        <div class="button-toolbar">
+                            <button class="btn-copy" onclick="copyMarkdown()">복사</button>
+                            <button class="btn-download" onclick="downloadMarkdown()">다운로드</button>
+                        </div>
+                        <div class="markdown-output" id="markdownOutput"></div>
+                    </div>
+
+                    <div id="json-tab" class="tab-content">
+                        <div class="button-toolbar">
+                            <button class="btn-copy" onclick="copyJSON()">복사</button>
+                            <button class="btn-download" onclick="downloadJSON()">다운로드</button>
+                        </div>
+                        <div class="markdown-output" id="jsonOutput"></div>
+                    </div>
+                </div>
+
+                <div style="padding: 40px; text-align: center; color: #999;" id="emptyState">
+                    <div style="font-size: 3em; margin-bottom: 20px;">📋</div>
+                    <p>추출 결과가 여기에 표시됩니다</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="footer">
+            <p>Backend: Flask + EasyOCR | Frontend: HTML5 + JavaScript</p>
+            <p style="margin-top: 10px; font-size: 0.85em; color: #999;">
+                API: http://localhost:5000/api/extract-ocr-easy
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 상태 관리
+        let currentFile = null;
+        let currentData = null;
+        let currentMarkdown = null;
+
+        // 업로드 영역 설정
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // 드래그 앤 드롭
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // 파일 선택
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // 파일 처리
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            const file = files[0];
+            if (file.type !== 'application/pdf') {
+                showError('PDF 파일만 업로드 가능합니다');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                showError('파일 크기가 50MB를 초과합니다');
+                return;
+            }
+
+            currentFile = file;
+            updateFileInfo();
+            uploadBtn.disabled = false;
+        }
+
+        // 파일 정보 업데이트
+        function updateFileInfo() {
+            const fileInfo = document.getElementById('fileInfo');
+            document.getElementById('fileName').textContent = currentFile.name;
+            document.getElementById('fileSize').textContent =
+                (currentFile.size / 1024 / 1024).toFixed(2) + ' MB';
+            document.getElementById('fileStatus').textContent = '준비 완료';
+            fileInfo.classList.add('show');
+        }
+
+        // 추출 시작
+        uploadBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+
+            uploadBtn.disabled = true;
+            showLoading(true);
+            hideError();
+            hideSuccess();
+
+            try {
+                const formData = new FormData();
+                formData.append('pdf', currentFile);
+
+                const response = await fetch('http://localhost:5000/api/extract-ocr-easy', {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'OCR 추출 실패');
+                }
+
+                const result = await response.json();
+                currentData = result.data;
+                currentMarkdown = result.markdown;
+
+                displayResults();
+                showSuccess('OCR 추출이 완료되었습니다!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || '오류가 발생했습니다');
+            } finally {
+                showLoading(false);
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // 초기화
+        clearBtn.addEventListener('click', () => {
+            currentFile = null;
+            currentData = null;
+            currentMarkdown = null;
+            fileInput.value = '';
+            document.getElementById('fileInfo').classList.remove('show');
+            document.getElementById('resultsPanel').classList.remove('show');
+            document.getElementById('emptyState').style.display = 'block';
+            uploadBtn.disabled = true;
+            hideError();
+            hideSuccess();
+        });
+
+        // 결과 표시
+        function displayResults() {
+            const emptyState = document.getElementById('emptyState');
+            const resultsPanel = document.getElementById('resultsPanel');
+
+            emptyState.style.display = 'none';
+            resultsPanel.classList.add('show');
+
+            // 통계 표시
+            displayStats();
+
+            // 마크다운 표시
+            document.getElementById('markdownOutput').textContent = currentMarkdown;
+
+            // JSON 표시
+            document.getElementById('jsonOutput').textContent = JSON.stringify(currentData, null, 2);
+        }
+
+        // 통계 표시
+        function displayStats() {
+            const statsGrid = document.getElementById('statsGrid');
+            const metadata = currentData.metadata;
+            const content = currentData.content;
+
+            const avgConfidence = content.length > 0
+                ? (content.reduce((sum, p) => sum + p.confidence, 0) / content.length * 100).toFixed(1)
+                : 0;
+
+            statsGrid.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value">${metadata.total_pages}</div>
+                    <div class="stat-label">페이지 수</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${avgConfidence}%</div>
+                    <div class="stat-label">평균 신뢰도</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${(metadata.file_size_kb).toFixed(1)}</div>
+                    <div class="stat-label">파일 크기 (KB)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${content.reduce((sum, p) => sum + p.lines_detected, 0)}</div>
+                    <div class="stat-label">감지된 라인</div>
+                </div>
+            `;
+        }
+
+        // 탭 전환
+        function switchTab(tab) {
+            // 탭 버튼 업데이트
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 탭 컨텐츠 업데이트
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+
+        // 복사 기능
+        function copyMarkdown() {
+            copyToClipboard(currentMarkdown, '마크다운');
+        }
+
+        function copyJSON() {
+            copyToClipboard(JSON.stringify(currentData, null, 2), 'JSON');
+        }
+
+        function copyToClipboard(text, label) {
+            navigator.clipboard.writeText(text).then(() => {
+                showSuccess(`${label}이 복사되었습니다!`);
+            }).catch(() => {
+                showError(`${label} 복사에 실패했습니다`);
+            });
+        }
+
+        // 다운로드 기능
+        function downloadMarkdown() {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/markdown;charset=utf-8,' + encodeURIComponent(currentMarkdown));
+            element.setAttribute('download', currentFile.name.replace('.pdf', '_ocr.md'));
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        function downloadJSON() {
+            const element = document.createElement('a');
+            const json = JSON.stringify(currentData, null, 2);
+            element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(json));
+            element.setAttribute('download', currentFile.name.replace('.pdf', '_ocr.json'));
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        // UI 헬퍼 함수
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            document.getElementById('errorText').textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            document.getElementById('successText').textContent = message;
+            successDiv.classList.add('show');
+            setTimeout(() => hideSuccess(), 3000);
+        }
+
+        function hideSuccess() {
+            document.getElementById('success').classList.remove('show');
+        }
+
+        // 백엔드 연결 확인
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/health', {
+                    mode: 'cors'
+                });
+                if (!response.ok) throw new Error();
+            } catch {
+                showError('백엔드 서버에 연결할 수 없습니다. Flask 앱을 실행해주세요.');
+            }
+        });
+    </script>
+</body>
+</html>
