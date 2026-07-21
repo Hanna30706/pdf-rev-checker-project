@@ -1,0 +1,19 @@
+{
+  "name": "pdf-comparison-tool",
+  "version": "1.0.0",
+  "description": "PDF 전후비교 웹사이트",
+  "type": "module",
+  "scripts": {
+    "dev": "react-scripts start",
+    "build": "react-scripts build",
+    "extract": "python backend/extract_pdf.py",
+    "compare": "python backend/compare_pdfs.py"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "react-scripts": "5.0.1"
+  }
+}

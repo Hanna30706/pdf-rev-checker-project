@@ -1,0 +1,5 @@
+docling==1.0.0
+Pillow==11.1.0
+pandas==2.2.0
+PyMuPDF>=1.25.0
+paddleocr>=2.8.0
