@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 비교 도구 - 한나</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(13, 71, 161, 0.15);
+            padding: 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: #0d47a1;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #1565c0;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            border: 2px dashed #1976d2;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f5f5f5;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-box:hover {
+            background: #e3f2fd;
+            border-color: #0d47a1;
+        }
+
+        .upload-box.drag-over {
+            background: #c8e6c9;
+            border-color: #388e3c;
+            border-width: 2px;
+        }
+
+        .upload-box h3 {
+            color: #0d47a1;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .file-label:hover {
+            background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(13, 71, 161, 0.3);
+        }
+
+        .file-name {
+            display: block;
+            margin-top: 10px;
+            color: #1565c0;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 14px 32px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .compare-btn {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            min-width: 150px;
+        }
+
+        .compare-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(13, 71, 161, 0.4);
+        }
+
+        .compare-btn:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .reset-btn {
+            background: #757575;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #616161;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #e3f2fd;
+            border-top: 4px solid #1976d2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #1565c0;
+            font-weight: 600;
+        }
+
+        .comparison-section {
+            display: none;
+            margin-top: 40px;
+        }
+
+        .comparison-section.show {
+            display: block;
+        }
+
+        .comparison-title {
+            color: #0d47a1;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #1976d2;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(13, 71, 161, 0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e3f2fd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .before-col {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .after-col {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .added {
+            background: #c8e6c9;
+            color: #1b5e20;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #388e3c;
+        }
+
+        .removed {
+            background: #ffcdd2;
+            color: #b71c1c;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #d32f2f;
+            text-decoration: line-through;
+        }
+
+        .modified {
+            background: #bbdefb;
+            color: #0d47a1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #1976d2;
+            font-weight: 600;
+        }
+
+        .same {
+            color: #666;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #1976d2;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #0d47a1;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #1565c0;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #b71c1c;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #d32f2f;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .backend-status {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff9800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .backend-status.connected {
+            border-left-color: #4caf50;
+            background: #f1f8e9;
+        }
+
+        .backend-status.disconnected {
+            border-left-color: #d32f2f;
+            background: #ffebee;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.connected {
+            background: #4caf50;
+        }
+
+        .status-indicator.disconnected {
+            background: #d32f2f;
+        }
+
+        .debug-section {
+            display: none;
+            margin-top: 40px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .debug-section.show {
+            display: block;
+        }
+
+        .debug-title {
+            color: #e65100;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .debug-content {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        @media (max-width: 1024px) {
+            .upload-section {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            td {
+                padding: 10px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .backend-status {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 PDF 비교 도구</h1>
+            <p class="subtitle">두 개의 PDF 파일을 업로드하여 변경사항을 한눈에 비교하세요</p>
+        </header>
+
+        <div class="backend-status" id="backendStatus">
+            <span><span class="status-indicator disconnected"></span>백엔드 연결 중...</span>
+            <span id="backendStatusText">확인 중</span>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-box">
+                <h3>📋 이전 버전 (Before)</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file1" accept=".pdf" />
+                    <label for="file1" class="file-label">파일 선택</label>
+                    <span class="file-name" id="file1-name"></span>
+                </div>
+            </div>
+            <div class="upload-box">
+                <h3>📋 새로운 버전 (After)</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file2" accept=".pdf" />
+                    <label for="file2" class="file-label">파일 선택</label>
+                    <span class="file-name" id="file2-name"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="compare-btn" id="compareBtn" disabled>비교하기</button>
+            <button class="reset-btn" id="resetBtn">초기화</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">PDF를 분석 중입니다...</div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="debug-section" id="debugSection">
+            <div class="debug-title">🔍 추출된 구조화 데이터</div>
+            <div class="debug-content" id="debugContent"></div>
+        </div>
+
+        <div class="comparison-section" id="comparisonSection">
+            <div class="comparison-title">📊 비교 결과</div>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="addedCount">0</div>
+                    <div class="stat-label">추가됨</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="removedCount">0</div>
+                    <div class="stat-label">삭제됨</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="modifiedCount">0</div>
+                    <div class="stat-label">수정됨</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">총 변화</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th class="before-col">이전 버전</th>
+                        <th class="after-col">새로운 버전</th>
+                    </tr>
+                </thead>
+                <tbody id="comparisonTable">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 설정
+        const BACKEND_URL = 'http://127.0.0.1:5000';
+
+        // 상태
+        let backendConnected = false;
+        let comparisonData = null;
+
+        // 페이지 로드 시 백엔드 연결 확인
+        window.addEventListener('load', checkBackendConnection);
+
+        // 파일 입력 이벤트
+        document.getElementById('file1').addEventListener('change', function(e) {
+            document.getElementById('file1-name').textContent = e.target.files[0]?.name || '';
+            updateCompareBtn();
+        });
+
+        document.getElementById('file2').addEventListener('change', function(e) {
+            document.getElementById('file2-name').textContent = e.target.files[0]?.name || '';
+            updateCompareBtn();
+        });
+
+        // 드래그 앤 드롭
+        function setupDragDrop(uploadBoxSelector, fileInputId) {
+            const uploadBox = document.querySelector(uploadBoxSelector);
+            const fileInput = document.getElementById(fileInputId);
+
+            uploadBox.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.classList.add('drag-over');
+            });
+
+            uploadBox.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.classList.remove('drag-over');
+            });
+
+            uploadBox.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.classList.remove('drag-over');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'application/pdf') {
+                    fileInput.files = files;
+                    const event = new Event('change', { bubbles: true });
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        }
+
+        setupDragDrop('.upload-section > div:first-child', 'file1');
+        setupDragDrop('.upload-section > div:last-child', 'file2');
+
+        // 백엔드 연결 확인
+        async function checkBackendConnection() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                if (response.ok) {
+                    backendConnected = true;
+                    updateBackendStatus(true);
+                } else {
+                    updateBackendStatus(false);
+                }
+            } catch (error) {
+                console.error('백엔드 연결 실패:', error);
+                updateBackendStatus(false);
+            }
+        }
+
+        function updateBackendStatus(connected) {
+            const statusEl = document.getElementById('backendStatus');
+            const statusText = document.getElementById('backendStatusText');
+            const indicator = statusEl.querySelector('.status-indicator');
+
+            if (connected) {
+                statusEl.classList.remove('disconnected');
+                statusEl.classList.add('connected');
+                indicator.classList.remove('disconnected');
+                indicator.classList.add('connected');
+                statusText.textContent = '✓ 백엔드 연결됨';
+                document.getElementById('compareBtn').disabled = false;
+                updateCompareBtn();
+            } else {
+                statusEl.classList.remove('connected');
+                statusEl.classList.add('disconnected');
+                indicator.classList.remove('connected');
+                indicator.classList.add('disconnected');
+                statusText.textContent = '✗ 백엔드 미연결 (http://127.0.0.1:5000)';
+                document.getElementById('compareBtn').disabled = true;
+            }
+        }
+
+        function updateCompareBtn() {
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
+            document.getElementById('compareBtn').disabled = !(file1 && file2 && backendConnected);
+        }
+
+        // 비교 버튼 클릭
+        document.getElementById('compareBtn').addEventListener('click', async function() {
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
+
+            if (!file1 || !file2) {
+                showError('두 파일을 모두 선택해주세요.');
+                return;
+            }
+
+            if (!backendConnected) {
+                showError('백엔드에 연결할 수 없습니다. 백엔드 서버를 실행해주세요.');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const formData = new FormData();
+                formData.append('before', file1);
+                formData.append('after', file2);
+
+                const response = await fetch(`${BACKEND_URL}/api/compare`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'PDF 비교 실패');
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    comparisonData = result.data;
+                    displayComparison(result.data);
+                    document.getElementById('debugSection').classList.add('show');
+                    document.getElementById('debugContent').textContent = JSON.stringify(result.data, null, 2);
+                } else {
+                    throw new Error(result.error || 'PDF 비교 실패');
+                }
+            } catch (error) {
+                showError('PDF 비교 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        function displayComparison(data) {
+            const tbody = document.getElementById('comparisonTable');
+            tbody.innerHTML = '';
+
+            const summary = data.summary;
+            document.getElementById('addedCount').textContent = summary.total_added;
+            document.getElementById('removedCount').textContent = summary.total_removed;
+            document.getElementById('modifiedCount').textContent = summary.total_modified;
+            document.getElementById('totalCount').textContent =
+                summary.total_added + summary.total_removed + summary.total_modified;
+
+            // 모든 페이지의 섹션 표시
+            data.pages.forEach((page, pageIdx) => {
+                page.sections.forEach(section => {
+                    if (section.change_type === 'unchanged') return;
+
+                    const row = document.createElement('tr');
+                    const beforeCell = document.createElement('td');
+                    const afterCell = document.createElement('td');
+
+                    beforeCell.className = 'before-col';
+                    afterCell.className = 'after-col';
+
+                    const beforeText = section.type === 'image'
+                        ? '[이미지]'
+                        : section.text || '(빈 내용)';
+
+                    if (section.change_type === 'removed') {
+                        beforeCell.innerHTML = `<span class="removed">${escapeHtml(beforeText)}</span>`;
+                        afterCell.innerHTML = '';
+                    } else if (section.change_type === 'added') {
+                        beforeCell.innerHTML = '';
+                        afterCell.innerHTML = `<span class="added">${escapeHtml(beforeText)}</span>`;
+                    } else if (section.change_type === 'modified') {
+                        const afterText = section.after?.text || '(빈 내용)';
+                        beforeCell.innerHTML = `<span class="modified">${escapeHtml(beforeText)}</span>`;
+                        afterCell.innerHTML = `<span class="modified">${escapeHtml(afterText)}</span>`;
+                    }
+
+                    row.appendChild(beforeCell);
+                    row.appendChild(afterCell);
+                    tbody.appendChild(row);
+                });
+            });
+
+            document.getElementById('comparisonSection').classList.add('show');
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+
+        // 초기화 버튼
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            document.getElementById('file1').value = '';
+            document.getElementById('file2').value = '';
+            document.getElementById('file1-name').textContent = '';
+            document.getElementById('file2-name').textContent = '';
+            document.getElementById('comparisonSection').classList.remove('show');
+            document.getElementById('comparisonTable').innerHTML = '';
+            document.getElementById('debugSection').classList.remove('show');
+            document.getElementById('debugContent').textContent = '';
+            hideError();
+            updateCompareBtn();
+            comparisonData = null;
+        });
+    </script>
+</body>
+</html>

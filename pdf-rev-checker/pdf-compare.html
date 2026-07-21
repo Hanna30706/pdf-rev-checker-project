@@ -67,6 +67,12 @@
             border-color: #0d47a1;
         }
 
+        .upload-box.drag-over {
+            background: #c8e6c9;
+            border-color: #388e3c;
+            border-width: 2px;
+        }
+
         .upload-box h3 {
             color: #0d47a1;
             margin-bottom: 15px;
@@ -317,6 +323,93 @@
             }
         }
 
+        .debug-section {
+            display: none;
+            margin-top: 40px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .debug-section.show {
+            display: block;
+        }
+
+        .debug-title {
+            color: #e65100;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .debug-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .debug-tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .debug-tab-btn.active {
+            color: #ff9800;
+            border-bottom-color: #ff9800;
+        }
+
+        .debug-content {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .debug-content.active {
+            display: block;
+        }
+
+        .debug-text-view {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .page-marker {
+            background: #fff3cd;
+            color: #856404;
+            padding: 8px;
+            margin: 10px 0 5px 0;
+            border-left: 3px solid #ff9800;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .download-btn {
+            background: #ff9800;
+            color: white;
+            margin-top: 15px;
+        }
+
+        .download-btn:hover {
+            background: #e65100;
+            transform: translateY(-2px);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -369,6 +462,7 @@
         <div class="button-group">
             <button class="compare-btn" id="compareBtn" disabled>비교하기</button>
             <button class="reset-btn" id="resetBtn">초기화</button>
+            <button class="reset-btn" id="debugToggleBtn" style="display: none;">📋 추출 내용 보기</button>
         </div>
 
         <div class="loading" id="loading">
@@ -377,6 +471,25 @@
         </div>
 
         <div class="error" id="error"></div>
+
+        <div class="debug-section" id="debugSection">
+            <div class="debug-title">🔍 추출된 텍스트 상세 분석</div>
+
+            <div class="debug-tabs">
+                <button class="debug-tab-btn active" data-tab="before">이전 버전 (Before)</button>
+                <button class="debug-tab-btn" data-tab="after">새로운 버전 (After)</button>
+            </div>
+
+            <div id="before" class="debug-content active">
+                <div class="debug-text-view" id="debugBefore"></div>
+                <button class="download-btn" id="downloadBefore">📥 이전 버전 저장 (TXT)</button>
+            </div>
+
+            <div id="after" class="debug-content">
+                <div class="debug-text-view" id="debugAfter"></div>
+                <button class="download-btn" id="downloadAfter">📥 새로운 버전 저장 (TXT)</button>
+            </div>
+        </div>
 
         <div class="comparison-section" id="comparisonSection">
             <div class="comparison-title">📊 비교 결과</div>
@@ -416,6 +529,8 @@
     <script>
         let pdf1Text = '';
         let pdf2Text = '';
+        let pdf1Debug = '';
+        let pdf2Debug = '';
         const pdfjs = window.pdfjsWorker = pdfjsWorker = { workerSrc: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js' };
 
         document.getElementById('file1').addEventListener('change', function(e) {
@@ -427,6 +542,39 @@
             document.getElementById('file2-name').textContent = e.target.files[0]?.name || '';
             updateCompareBtn();
         });
+
+        function setupDragDrop(uploadBoxId, fileInputId) {
+            const uploadBox = document.querySelector(uploadBoxId);
+            const fileInput = document.getElementById(fileInputId);
+
+            uploadBox.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.classList.add('drag-over');
+            });
+
+            uploadBox.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.classList.remove('drag-over');
+            });
+
+            uploadBox.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadBox.classList.remove('drag-over');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    const event = new Event('change', { bubbles: true });
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        }
+
+        setupDragDrop('.upload-section > div:first-child', 'file1');
+        setupDragDrop('.upload-section > div:last-child', 'file2');
 
         function updateCompareBtn() {
             const file1 = document.getElementById('file1').files[0];
@@ -441,13 +589,93 @@
                     try {
                         const pdf = await pdfjsLib.getDocument(e.target.result).promise;
                         let text = '';
+                        let debug = `파일명: ${file.name}\n파일크기: ${(file.size / 1024).toFixed(2)} KB\n총 페이지: ${pdf.numPages}\n\n`;
+                        debug += '='.repeat(80) + '\n';
+
                         for (let i = 1; i <= pdf.numPages; i++) {
+                            debug += `\n[페이지 ${i}]\n`;
+                            debug += '-'.repeat(80) + '\n';
+
                             const page = await pdf.getPage(i);
                             const content = await page.getTextContent();
-                            const pageText = content.items.map(item => item.str).join(' ');
-                            text += pageText + '\n';
+                            const viewport = page.getViewport({ scale: 1 });
+
+                            debug += `페이지 크기: ${viewport.width.toFixed(2)} x ${viewport.height.toFixed(2)}\n`;
+                            debug += `텍스트 항목 수: ${content.items.length}\n`;
+
+                            // 디버깅: 첫 번째 item의 전체 구조 확인
+                            if (content.items.length > 0) {
+                                console.log(`=== 페이지 ${i} 첫 번째 item 전체 구조 ===`);
+                                console.log('첫 번째 item:', content.items[0]);
+                                console.log('첫 번째 item의 모든 key:', Object.keys(content.items[0]));
+                                console.log('첫 5개 item:', content.items.slice(0, 5));
+                                debug += `\n[DEBUG] 첫 번째 item 구조:\n`;
+                                debug += JSON.stringify(content.items[0], null, 2) + '\n';
+                            }
+
+                            // Y 좌표 기준으로 텍스트 항목 그룹화
+                            const items = content.items.filter(item => item.str && item.str.trim());
+
+                            debug += `필터링 후 항목 수: ${items.length}\n\n`;
+
+                            if (items.length === 0) {
+                                debug += '텍스트 항목 없음\n';
+                                debug += '-'.repeat(80) + '\n';
+                                continue;
+                            }
+
+                            // Y 좌표로 줄 그룹 만들기
+                            const lines = [];
+                            const yTolerance = 3; // Y 좌표 허용 오차
+
+                            items.forEach(item => {
+                                const itemY = Math.round(typeof item.y === 'number' && !isNaN(item.y) ? item.y : 0);
+                                const itemX = item.x || 0;
+
+                                let found = false;
+                                // 기존 줄 찾기
+                                for (let line of lines) {
+                                    if (Math.abs(line.y - itemY) <= yTolerance) {
+                                        line.items.push({ x: itemX, str: item.str, y: itemY });
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                // 새로운 줄 생성
+                                if (!found) {
+                                    lines.push({
+                                        y: itemY,
+                                        items: [{ x: itemX, str: item.str, y: itemY }]
+                                    });
+                                }
+                            });
+
+                            // Y 좌표 내림차순으로 정렬 (위에서 아래로)
+                            lines.sort((a, b) => b.y - a.y);
+
+                            // 각 줄에서 X 좌표순으로 정렬 후 텍스트 조합
+                            let lineNum = 1;
+                            lines.forEach(line => {
+                                line.items.sort((a, b) => a.x - b.x);
+                                const lineText = line.items.map(item => item.str).join(' ');
+                                const cleanedText = lineText.replace(/\s+/g, ' ').trim();
+
+                                if (cleanedText) {
+                                    const yValue = typeof line.y === 'number' && !isNaN(line.y) ? line.y : 0;
+                                    debug += `[줄 ${lineNum}] Y:${yValue} | ${cleanedText}\n`;
+                                    text += cleanedText + '\n';
+                                    lineNum++;
+                                }
+                            });
+
+                            debug += '-'.repeat(80) + '\n';
                         }
-                        resolve(text);
+
+                        debug += '\n' + '='.repeat(80) + '\n';
+                        debug += `총 줄 수: ${text.split('\n').filter(l => l.trim()).length}\n`;
+
+                        resolve({ text, debug });
                     } catch (error) {
                         reject(error);
                     }
@@ -488,6 +716,8 @@
             let addedCount = 0, removedCount = 0, modifiedCount = 0;
 
             diffs.forEach(diff => {
+                if (diff.type === 'same') return;
+
                 const row = document.createElement('tr');
 
                 const beforeCell = document.createElement('td');
@@ -521,7 +751,7 @@
             document.getElementById('addedCount').textContent = addedCount;
             document.getElementById('removedCount').textContent = removedCount;
             document.getElementById('modifiedCount').textContent = modifiedCount;
-            document.getElementById('totalCount').textContent = diffs.length;
+            document.getElementById('totalCount').textContent = addedCount + removedCount + modifiedCount;
 
             document.getElementById('comparisonSection').classList.add('show');
         }
@@ -550,8 +780,19 @@
             hideError();
 
             try {
-                pdf1Text = await extractTextFromPDF(file1);
-                pdf2Text = await extractTextFromPDF(file2);
+                const result1 = await extractTextFromPDF(file1);
+                const result2 = await extractTextFromPDF(file2);
+
+                pdf1Text = result1.text;
+                pdf2Text = result2.text;
+                pdf1Debug = result1.debug;
+                pdf2Debug = result2.debug;
+
+                // 디버그 정보 표시
+                document.getElementById('debugBefore').textContent = pdf1Debug;
+                document.getElementById('debugAfter').textContent = pdf2Debug;
+                document.getElementById('debugSection').classList.add('show');
+                document.getElementById('debugToggleBtn').style.display = 'inline-block';
 
                 const lines1 = getLines(pdf1Text);
                 const lines2 = getLines(pdf2Text);
@@ -572,8 +813,14 @@
             document.getElementById('file2-name').textContent = '';
             document.getElementById('comparisonSection').classList.remove('show');
             document.getElementById('comparisonTable').innerHTML = '';
+            document.getElementById('debugSection').classList.remove('show');
+            document.getElementById('debugBefore').textContent = '';
+            document.getElementById('debugAfter').textContent = '';
+            document.getElementById('debugToggleBtn').style.display = 'none';
             hideError();
             updateCompareBtn();
+            pdf1Debug = '';
+            pdf2Debug = '';
         });
 
         function showLoading(show) {
@@ -589,6 +836,55 @@
         function hideError() {
             document.getElementById('error').classList.remove('show');
         }
+
+        // 디버그 탭 토글 기능
+        document.querySelectorAll('.debug-tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+
+                // 모든 탭 비활성화
+                document.querySelectorAll('.debug-tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.debug-content').forEach(c => c.classList.remove('active'));
+
+                // 클릭한 탭 활성화
+                this.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        // 파일 다운로드 기능
+        function downloadAsFile(content, filename) {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        document.getElementById('downloadBefore').addEventListener('click', function() {
+            const file1Name = document.getElementById('file1').files[0]?.name || 'before';
+            const filename = file1Name.replace('.pdf', '_extracted.txt');
+            downloadAsFile(pdf1Debug + '\n\n' + '='.repeat(80) + '\n원본 텍스트\n' + '='.repeat(80) + '\n\n' + pdf1Text, filename);
+        });
+
+        document.getElementById('downloadAfter').addEventListener('click', function() {
+            const file2Name = document.getElementById('file2').files[0]?.name || 'after';
+            const filename = file2Name.replace('.pdf', '_extracted.txt');
+            downloadAsFile(pdf2Debug + '\n\n' + '='.repeat(80) + '\n원본 텍스트\n' + '='.repeat(80) + '\n\n' + pdf2Text, filename);
+        });
+
+        document.getElementById('debugToggleBtn').addEventListener('click', function() {
+            const debugSection = document.getElementById('debugSection');
+            if (debugSection.classList.contains('show')) {
+                debugSection.classList.remove('show');
+                this.textContent = '📋 추출 내용 보기';
+            } else {
+                debugSection.classList.add('show');
+                this.textContent = '📋 추출 내용 숨기기';
+            }
+        });
     </script>
 </body>
 </html>
