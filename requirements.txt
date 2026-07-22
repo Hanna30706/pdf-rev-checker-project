@@ -2,4 +2,11 @@ docling==1.0.0
 Pillow==11.1.0
 pandas==2.2.0
 PyMuPDF>=1.25.0
-paddleocr>=2.8.0
+
+# PaddleOCR requires Python <=3.13 (no wheels for 3.14 yet).
+# Use venv312 (Python 3.12) instead of the default venv (Python 3.14).
+# paddlepaddle 3.x's CPU executor crashes on paddleocr 2.x's legacy exported
+# models (fused_conv2d/oneDNN error), so pin paddlepaddle to 2.6.2, the last
+# 2.x release with Windows cp312 wheels.
+paddlepaddle==2.6.2
+paddleocr==2.9.1

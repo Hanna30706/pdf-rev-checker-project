@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import paddle; print\\('paddle ok', paddle.__version__\\)\")",
+      "Bash(python -)"
+    ]
+  }
+}
